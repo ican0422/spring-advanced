@@ -26,7 +26,9 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest signupRequest) {
-
+        if (signupRequest.getEmail() == null) {
+            throw new NullPointerException("이메일이 입력되있지 않습니다.");
+        }
         String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
 
         UserRole userRole = UserRole.of(signupRequest.getUserRole());
