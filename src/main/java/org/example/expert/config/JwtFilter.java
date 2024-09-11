@@ -56,7 +56,6 @@ public class JwtFilter implements Filter {
             }
 
             UserRole userRole = UserRole.valueOf(claims.get("userRole", String.class));
-
             httpRequest.setAttribute("userId", Long.parseLong(claims.getSubject()));
             httpRequest.setAttribute("email", claims.get("email"));
             httpRequest.setAttribute("userRole", claims.get("userRole"));
@@ -83,6 +82,7 @@ public class JwtFilter implements Filter {
             httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "지원되지 않는 JWT 토큰입니다.");
         } catch (Exception e) {
             log.error("Invalid JWT token, 유효하지 않는 JWT 토큰 입니다.", e);
+            e.printStackTrace();
             httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "유효하지 않는 JWT 토큰입니다.");
         }
     }
