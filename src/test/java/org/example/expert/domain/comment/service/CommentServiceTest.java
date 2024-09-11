@@ -15,14 +15,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -32,6 +33,7 @@ class CommentServiceTest {
     @Mock
     private TodoRepository todoRepository;
     @InjectMocks
+    @Spy
     private CommentService commentService;
 
     @Test
@@ -70,5 +72,32 @@ class CommentServiceTest {
 
         // then
         assertNotNull(result);
+    }
+
+    @Test
+    public void 댓글_삭제() {
+        // given
+        long todoId = 1L;
+
+        given(todoRepository.findById(anyLong())).willReturn(Optional.of(new Todo()));
+        doNothing().when(commentRepository).deleteAll(anyList());
+        doNothing().when(commentService).showThrow();
+
+        // when
+        commentService.deleteComments(todoId);
+
+        // then
+        verify(commentRepository, times(1)).deleteAll(anyList());
+    }
+
+    @Test
+    public void simple_spy() {
+        Comment commentReal = new Comment();
+        Comment commentSpy = spy(Comment.class);
+
+        given(commentSpy.getId()).willReturn(1L);
+
+        assertNull(commentReal.getId());
+        assertNull(commentSpy.getId());
     }
 }
