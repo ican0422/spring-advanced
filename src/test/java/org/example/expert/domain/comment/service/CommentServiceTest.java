@@ -7,6 +7,8 @@ import org.example.expert.domain.comment.repository.CommentRepository;
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.common.exception.ServerException;
+import org.example.expert.domain.manager.entity.Manager;
+import org.example.expert.domain.manager.repository.ManagerRepository;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
@@ -17,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -32,6 +35,9 @@ class CommentServiceTest {
     private CommentRepository commentRepository;
     @Mock
     private TodoRepository todoRepository;
+    @Mock
+    private ManagerRepository managerRepository;
+
     @InjectMocks
     @Spy
     private CommentService commentService;
@@ -59,12 +65,18 @@ class CommentServiceTest {
         // given
         long todoId = 1;
         CommentSaveRequest request = new CommentSaveRequest("contents");
+
         AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
         User user = User.fromAuthUser(authUser);
+
         Todo todo = new Todo("title", "title", "contents", user);
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        Manager manager = new Manager(user, todo);
         Comment comment = new Comment(request.getContents(), user, todo);
 
         given(todoRepository.findById(anyLong())).willReturn(Optional.of(todo));
+        given(managerRepository.findById(anyLong())).willReturn(Optional.of(manager));
         given(commentRepository.save(any())).willReturn(comment);
 
         // when
@@ -72,6 +84,41 @@ class CommentServiceTest {
 
         // then
         assertNotNull(result);
+    }
+
+    @Test
+    public void 일정_담당자가_아닌_사람이_댓글을_등록할때() {
+        // given
+        long todoId = 1;
+        CommentSaveRequest request = new CommentSaveRequest("contents");
+
+        AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
+        User user = User.fromAuthUser(authUser);
+
+        Todo todo = new Todo("title", "title", "contents", user);
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        // 담당장가 아닐때
+        long newTodoId = 2;
+
+        AuthUser newAuthUser = new AuthUser(2L, "email", UserRole.USER);
+        User dontUser = User.fromAuthUser(newAuthUser);
+
+        Todo newTodo = new Todo("title", "title", "contents", user);
+        ReflectionTestUtils.setField(newTodo, "id", newTodoId);
+
+        Manager newManager = new Manager(dontUser, newTodo);
+
+        given(todoRepository.findById(anyLong())).willReturn(Optional.of(todo));
+        given(managerRepository.findById(anyLong())).willReturn(Optional.of(newManager));
+
+        // when
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
+            commentService.saveComment(newAuthUser, todoId, request);
+        });
+
+        // then
+        assertEquals("해당 일정의 매니저가 아닙니다.", exception.getMessage());
     }
 
     @Test

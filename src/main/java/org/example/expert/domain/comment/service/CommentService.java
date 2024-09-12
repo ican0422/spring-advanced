@@ -9,6 +9,8 @@ import org.example.expert.domain.comment.entity.Comment;
 import org.example.expert.domain.comment.repository.CommentRepository;
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
+import org.example.expert.domain.manager.entity.Manager;
+import org.example.expert.domain.manager.repository.ManagerRepository;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.dto.response.UserResponse;
@@ -25,11 +27,11 @@ import java.util.List;
 public class CommentService {
 
     private final TodoRepository todoRepository;
+    private final ManagerRepository managerRepository;
     private final CommentRepository commentRepository;
 
     @Transactional
     public CommentSaveResponse saveComment(AuthUser authUser, long todoId, CommentSaveRequest commentSaveRequest) {
-        log.info("bug2");
         User user = User.fromAuthUser(authUser);
         Todo todo = todoRepository.findById(todoId).orElseThrow(() ->
                 new InvalidRequestException("Todo not found"));
@@ -39,6 +41,13 @@ public class CommentService {
                 user,
                 todo
         );
+
+        // 해당 일정의 담당자인지 확인
+        Manager manager = managerRepository.findById(user.getId()).orElseThrow(() ->
+                new InvalidRequestException("Manager Not Found"));
+        if (manager.getTodo().getId() != todoId) {
+            throw new InvalidRequestException("해당 일정의 매니저가 아닙니다.");
+        }
 
         Comment savedComment = commentRepository.save(newComment);
 
