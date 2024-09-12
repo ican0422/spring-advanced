@@ -1,11 +1,12 @@
-package org.example.expert.domain.comment.controller;
+package org.example.expert.domain.manager.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.expert.config.AuthUserArgumentResolver;
 import org.example.expert.config.GlobalExceptionHandler;
-import org.example.expert.domain.comment.dto.request.CommentSaveRequest;
-import org.example.expert.domain.comment.service.CommentService;
+import org.example.expert.config.JwtUtil;
 import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.domain.manager.dto.request.ManagerSaveRequest;
+import org.example.expert.domain.manager.service.ManagerService;
 import org.example.expert.domain.user.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,26 +20,32 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.mockito.ArgumentMatchers.*;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(CommentController.class)
-public class CommentControllerTest {
+
+@WebMvcTest(ManagerController.class)
+public class ManagerControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private CommentController controller;
+    private ManagerController controller;
 
     @MockBean
-    private CommentService commentService;
+    private ManagerService managerService;
+
+    @MockBean
+    private JwtUtil jwtUtil;
 
     @Mock
     private AuthUserArgumentResolver resolver;
-
 
     @BeforeEach
     public void setup() {
@@ -49,36 +56,36 @@ public class CommentControllerTest {
     }
 
     @Test
-    public void 댓글_조회() throws Exception {
+    public void 매니저_생성() throws Exception {
         // given
-        Long todoId = 1L;
+        given(resolver.supportsParameter(any())).willReturn(true);
+        given(resolver.resolveArgument(any(), any(), any(), any())).willReturn( new AuthUser(1L, "email", UserRole.USER));
 
-        given(commentService.getComments(anyLong())).willReturn(anyList());
+        AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
+        long todoId = 1L;
+        ManagerSaveRequest request = new ManagerSaveRequest(1L);
+        given(managerService.saveManager(authUser, todoId, request)).willReturn(any());
 
         // when
-        ResultActions resultActions = mockMvc.perform(get("/todos/{todoId}/comments", todoId));
+        ResultActions resultActions = mockMvc.perform((post("/todos/{todoId}/managers", todoId))
+                .header(HttpHeaders.AUTHORIZATION, "test")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(request))
+        );
 
         // then
         resultActions.andExpect(status().isOk());
     }
 
     @Test
-    public void 댓글_생성() throws Exception {
-        given(resolver.supportsParameter(any())).willReturn(true);
-        given(resolver.resolveArgument(any(), any(), any(), any())).willReturn(new AuthUser(1L, "email", UserRole.USER));
-
-        AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
+    public void 매니저_조회() throws Exception {
+        // given
         long todoId = 1L;
-        CommentSaveRequest request = new CommentSaveRequest("contents");
 
-        given(commentService.saveComment(authUser, todoId, request)).willReturn(any());
+        given(managerService.getManagers(anyLong())).willReturn(List.of());
 
         // when
-        ResultActions resultActions = mockMvc.perform((post("/todos/{todoId}/comments", todoId))
-                .header(HttpHeaders.AUTHORIZATION, "test")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(request))
-        );
+        ResultActions resultActions = mockMvc.perform(get("/todos/{todoId}/managers", todoId));
 
         // then
         resultActions.andExpect(status().isOk());
