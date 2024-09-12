@@ -1,8 +1,11 @@
-package org.example.expert.domain;
+package org.example.expert.domain.todo;
 
 import org.example.expert.client.WeatherClient;
+import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
+import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
+import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.todo.service.TodoService;
@@ -19,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 
@@ -45,7 +49,7 @@ public class TodoServiceTest {
             Todo todo = new Todo("title", "contents", "weather", user);
             ReflectionTestUtils.setField(todo, "id", userId);
 
-            given(todoRepository.findByIdWithUser(anyLong())).willReturn(Optional.of(todo));
+            given(todoRepository.findByIdWithUser(anyLong())).willReturn(Optional.empty());
 
             // when
             InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> todoService.getTodo(todoId));
@@ -62,7 +66,7 @@ public class TodoServiceTest {
             User user = new User("email", "pwd", UserRole.USER);
             ReflectionTestUtils.setField(user, "id", userId);
             Todo todo = new Todo("title", "contents", "weather", user);
-            ReflectionTestUtils.setField(todo, "id", userId);
+            ReflectionTestUtils.setField(todo, "id", todoId);
 
             given(todoRepository.findByIdWithUser(anyLong())).willReturn(Optional.of(todo));
 
@@ -75,5 +79,25 @@ public class TodoServiceTest {
         }
     }
 
+    @Test
+    public void 일정_생성_정상(){
+        // given
+        AuthUser authUser = new AuthUser(1L, "e@a.com", UserRole.USER);
+        User user = User.fromAuthUser(authUser);
+        String weather = weatherClient.getTodayWeather();
+        TodoSaveRequest request = new TodoSaveRequest("title", "contents");
+        long todoId = 1L;
+        Todo newTodo = new Todo(request.getTitle(), request.getContents(), weather, user);
+        ReflectionTestUtils.setField(newTodo, "id", todoId);
+
+        given(todoRepository.save(any())).willReturn(newTodo);
+
+        // when
+        TodoSaveResponse response = todoService.saveTodo(authUser, request);
+
+        // then
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+    }
 
 }

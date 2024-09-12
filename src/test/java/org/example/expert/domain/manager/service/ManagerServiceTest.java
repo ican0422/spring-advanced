@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.ObjectUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ManagerServiceTest {
@@ -120,5 +122,46 @@ class ManagerServiceTest {
         assertNotNull(response);
         assertEquals(managerUser.getId(), response.getUser().getId());
         assertEquals(managerUser.getEmail(), response.getUser().getEmail());
+    }
+
+    @Test
+    public void 매니저_삭제_정상() {
+        // given
+        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        User user = User.fromAuthUser(authUser);
+
+        User mangerUser =new User(2L, "a@a.com", "Asd12345", UserRole.USER);
+
+        long todoId = 1L;
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
+
+        long managerId = 2L;
+        Manager manager = new Manager(mangerUser,todo);
+
+        // when
+        when(userRepository.findById(authUser.getId())).thenReturn(Optional.of(user));
+        when(todoRepository.findById(todoId)).thenReturn(Optional.of(todo));
+        when(managerRepository.findById(managerId)).thenReturn(Optional.of(manager));
+
+        managerService.deleteManager(authUser, todoId, managerId);
+
+        // then
+        verify(managerRepository, times(1)).delete(manager);
+    }
+
+    @Test
+    public void 매니저_삭제_중_해당_매니저가_없을때() {
+        // given
+        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        long todoId = 1L;
+        long managerUserId = 2L;
+        given(userRepository.findById(authUser.getId())).willReturn(Optional.empty());
+
+        // when
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () ->
+                managerService.deleteManager(authUser, todoId, managerUserId));
+
+        // then
+        assertEquals("User not found", exception.getMessage());
     }
 }

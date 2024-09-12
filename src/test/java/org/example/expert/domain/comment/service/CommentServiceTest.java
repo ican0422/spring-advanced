@@ -98,6 +98,6 @@ class CommentServiceTest {
         given(commentSpy.getId()).willReturn(1L);
 
         assertNull(commentReal.getId());
-        assertNull(commentSpy.getId());
+        assertNotNull(commentSpy.getId());
     }
 }
