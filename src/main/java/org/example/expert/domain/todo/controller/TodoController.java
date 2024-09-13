@@ -28,8 +28,8 @@ public class TodoController {
 
     @GetMapping("/todos")
     public ResponseEntity<Page<TodoResponse>> getTodos(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "1", name = "page") int page,
+            @RequestParam(defaultValue = "10", name = "size") int size
     ) {
         return ResponseEntity.ok(todoService.getTodos(page, size));
     }
